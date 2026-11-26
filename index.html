@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MPN.studio: klip, auto edit, dan teks ke video</title>
+<meta name="description" content="MPN.studio: klip video, auto edit, teks ke video bersuara, dan serial kartun interaktif. Gratis dengan key Gemini sendiri.">
+<meta property="og:title" content="MPN.studio">
+<meta property="og:description" content="Klip video, auto edit, teks ke video, dan serial kartun interaktif langsung di browser.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e2a1c">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;600;800&family=Playfair+Display:wght@700;800&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div class="w">
+<header><div class="logo">MPN<i>.</i>studio</div><span>Gratis dengan key Gemini sendiri</span></header>
+<details class="set" id="set"><summary>Pengaturan AI gratis (isi sekali, tersimpan di perangkatmu)</summary>
+<div class="ctl" style="margin-top:14px">
+<p class="st">Cara termudah: ambil API key Gemini gratis di aistudio.google.com/apikey, tempel di bawah. Key hanya disimpan di browser ini dan dikirim langsung ke Google. Setiap orang memakai key sendiri.</p>
+<label>API key Gemini<input type="password" id="gk" data-ls autocomplete="off" placeholder="AIza..."></label>
+<details><summary>Dipakai beberapa orang? Pakai server bersama</summary>
+<p class="st">Pemilik menyiapkan server (lihat berkas worker.js), lalu temannya cukup membuka link undangan tanpa membuat key. Kuota gratis dipakai bersama.</p>
+<label>Alamat server bersama<input type="text" id="px" data-ls placeholder="https://nama.akunmu.workers.dev"></label>
+<label>Kode akses<input type="password" id="pc" data-ls autocomplete="off" placeholder="kode dari pemilik server"></label>
+<button class="btn alt" id="inv" type="button">Salin link undangan</button>
+</details>
+<button class="btn" id="gs" type="button">Simpan dan cek</button><div class="st" id="gst" role="status"></div>
+<div class="row"><label>Model teks<select id="gt" data-ls></select></label><label>Model suara<select id="gv" data-ls></select></label></div>
+<div class="row"><label>Sumber suara<select id="vp" data-ls><option value="gemini">Gemini (gratis)</option><option value="eleven">ElevenLabs (key sendiri)</option><option value="none">Tanpa suara</option></select></label>
+<label>Karakter suara Gemini<select id="vv" data-ls><option>Kore</option><option>Puck</option><option>Zephyr</option><option>Charon</option><option>Aoede</option><option>Leda</option><option>Fenrir</option><option>Orus</option></select></label></div>
+<div class="row"><label>API key ElevenLabs (opsional)<input type="password" id="ek" data-ls autocomplete="off"></label><label>Voice ID ElevenLabs<input type="text" id="ei" data-ls placeholder="21m00Tcm4TlvDq8ikWAM"></label></div>
+<div class="row"><label>Mesin transkrip video<select id="tre" data-ls><option value="auto">Otomatis</option><option value="gemini">Gemini</option><option value="whisper">Whisper di browser</option></select></label>
+<label>Ukuran Whisper<select id="wm" data-ls><option value="tiny">tiny (cepat, cocok HP)</option><option value="base">base (lebih akurat)</option></select></label></div>
+<label>Nama channel atau @username (tampil di template)<input type="text" id="hd" data-ls placeholder="@usernamemu"></label>
+<button class="btn alt" id="dg" type="button">Cek kesiapan (tes browser, AI, dan suara)</button>
+<ul class="dg" id="dgo" aria-live="polite"></ul>
+</div></details>
+
+<h1>Satu video, puluhan klip. Semua jalan di browsermu.</h1>
+<p class="sub">Tempel link YouTube atau unggah video: AI mencari momen terbaik, membuat subtitle dan efek, lengkap dengan sound effect. Atau ketik pertanyaan apa saja dan jadikan video animasi bersuara.</p>
+
+<div class="tabs" role="tablist">
+<button role="tab" id="t1" aria-selected="true" aria-controls="p1">Clipper</button>
+<button role="tab" id="t3" aria-selected="false" aria-controls="p3">Teks ke video</button>
+</div>
+
+<div class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+<div class="ctl">
+<label class="file">Pilih file video (MP4, MOV, WebM)<input type="file" id="vf" accept="video/*"></label>
+<div class="row">
+<label><span>Panjang klip: <span id="lv">30</span> detik</span><input type="range" id="len" min="10" max="60" value="30"></label>
+<label>Jumlah klip<input type="number" id="cnt" min="1" max="10" value="4"></label>
+</div>
+<label>Link YouTube<input type="text" id="yt" placeholder="https://youtu.be/..."></label>
+<button class="btn" id="auto">Buat otomatis dari video atau link</button>
+<details><summary>Transkrip (otomatis, boleh diedit)</summary><textarea id="tr" rows="5" placeholder="Terisi otomatis. Format: 0:05 kalimat"></textarea><button class="btn alt" id="srt" type="button">Unduh subtitle (.srt)</button></details>
+<button class="btn alt" id="ai">Cari momen dari transkrip (AI)</button>
+<button class="btn alt" id="find">Atau cari dari suara saja</button>
+<div id="clips" aria-live="polite"></div>
+<div class="row">
+<label>Teks hook<input type="text" id="hook" placeholder="Jangan skip bagian ini"></label>
+<label>Gaya hook<select id="sty"><option value="q">Kutipan</option><option value="n">Breaking news</option><option value="b">Teks tebal</option></select></label>
+</div>
+<label>Template dan gaya subtitle<select id="cs"><option value="neon">Neon Biru</option><option value="lime">Terminal Lime</option><option value="emas">Emas Elegan</option><option value="oranye">Editorial Oranye</option><option value="hijau">Hijau Bersih</option><option value="navy">Navy Metafora</option><option value="p">Pop kuning</option><option value="k">Karaoke kotak pink</option></select></label>
+<label>Subtitle manual (opsional)<input type="text" id="cap" placeholder="Teks tambahan di bawah"></label>
+<label>Geser posisi bingkai<input type="range" id="pos" min="0" max="100" value="50"></label>
+<button class="btn" id="ae">Auto edit dengan AI (kartu, scene, efek, sound effect)</button>
+<button class="btn" id="exp">Ekspor klip</button>
+<div id="pg1"></div><div class="res" id="res1"></div>
+<div class="st" id="st1" role="status">Pilih video untuk mulai.</div>
+</div>
+<div class="phone">
+<video id="v" playsinline></video>
+<canvas id="ovc" width="540" height="960"></canvas>
+<div class="empty" id="em">Pratinjau 9:16 muncul di sini</div>
+</div>
+</div>
+
+<div class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+<div class="ctl">
+<label>Ketik pertanyaan, topik, atau ide cerita (boleh sangat panjang)<textarea id="sc" rows="5" placeholder="Contoh: Kenapa langit berwarna biru? Atau ide serial: Kamu terbangun di desa asing tanpa ingatan."></textarea></label>
+<label>Jenis video<select id="as"><option value="auto">Otomatis (AI memilih terbaik)</option><option value="episode">Episode kartun (cerita panjang, banyak adegan)</option><option value="serial">Serial kartun interaktif (Part 1, KAMU PILIH)</option><option value="mg">Motion graphic</option><option value="char">Karakter animasi (cerita)</option><option value="kin">Kinetic typography</option><option value="chat">Cerita chat</option><option value="info">Infografis data</option></select></label>
+<label hidden>Gaya visual episode<select id="pre"><option value="">Otomatis (AI memilih)</option><option value="2d-flat-satire">Kartun 2D satire (cerah, komedi)</option><option value="retro-blocky-surreal">Retro blocky surreal (misteri, TV)</option><option value="2d-flat-emotional">Kartun 2D emosional (hangat, drama)</option></select></label>
+<p class="st">Warna, efek latar, dan gaya judul dipilih sendiri oleh AI sesuai topik.</p>
+<button class="btn" id="tv0">Buat video lengkap (scene, suara, simpan)</button>
+<div class="srbox" id="srbox" hidden><p class="st" id="srs"></p><label><span id="winl">Pilihan yang menang (untuk Part berikutnya)</span><input type="text" id="win" placeholder="1, 2, atau tulis pilihan sendiri"></label><button class="btn" id="nxt" type="button" disabled>Lanjut Part 2</button></div>
+<div class="row"><button class="btn alt" id="tg">Buat scene saja</button><button class="btn alt" id="tl">Pakai teks apa adanya</button></div>
+<label>Voice over sendiri (opsional)<input type="file" id="vo" accept="audio/*"></label>
+<details><summary>Edit scene (JSON)</summary><textarea id="sj" rows="9" spellcheck="false"></textarea></details>
+<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" id="sp">Suara pembaca bawaan saat pratinjau (tidak ikut ekspor)</label>
+<div class="row"><button class="btn alt" id="tvc">Buat suara</button><button class="btn" id="tp">Putar</button></div>
+<button class="btn" id="te">Ekspor video</button>
+<div id="pg3"></div><div class="res" id="res3"></div>
+<div class="st" id="st3" role="status">Ketik topik atau ide, lalu klik Buat video lengkap.</div>
+</div>
+<div class="phone"><canvas id="tv" width="540" height="960"></canvas></div>
+</div>
+
+<section class="f">
+<h2>Pertanyaan yang sering muncul</h2>
+<details><summary>Benar-benar gratis?</summary><p>Aplikasinya gratis dan jalan di browser. AI memakai kuota gratis Gemini (ada batas per menit dan per hari). ElevenLabs opsional dengan key sendiri, dan Whisper berjalan di perangkatmu tanpa key.</p></details>
+<details><summary>Bagaimana dipakai beberapa orang?</summary><p>Ada dua cara. Paling mudah: bagikan link aplikasinya, dan tiap orang memasukkan API key Gemini gratis miliknya sendiri. Kalau mau temanmu tidak perlu key, pemilik memasang server bersama (berkas worker.js di Cloudflare, gratis), lalu mengirim link undangan dari Pengaturan AI. Kuota gratis kemudian dipakai bersama, dengan batas per orang.</p></details>
+<details><summary>Bagaimana menjalankannya di HP dan laptop?</summary><p>Unggah file ini ke hosting statis gratis seperti Netlify Drop, GitHub Pages, atau Cloudflare Pages, lalu buka linknya di browser mana pun dan pilih Tambahkan ke layar utama.</p></details>
+<details><summary>Siapa yang menentukan tampilan video teks ke video?</summary><p>AI. Untuk tiap topik, AI memilih warna, efek latar, gaya judul, dan jenis scene yang paling cocok, jadi video bertema religi, teknologi, atau anak-anak tampil berbeda. Kamu juga bisa memilih jenis video tertentu, misalnya karakter animasi atau kinetic typography.</p></details>
+<details><summary>Apa itu serial kartun interaktif?</summary><p>Video vertikal pendek (sekitar 11,5 detik) bertokoh kartun: ada hari dan jam, label PART, kalimat besar diawali KAMU, dua subtitle, kotak KAMU PILIH dengan dua pilihan, dan ajakan KOMEN 1 ATAU 2. Setelah penontonmu memilih, tulis pilihan yang menang lalu klik Lanjut Part berikutnya. Tokoh dan gaya tetap sama. Persentase di kotak pilihan hanya animasi tampilan, bukan hasil voting sungguhan.</p></details>
+<details><summary>Bagaimana kalau teksnya sangat panjang atau AI sedang bermasalah?</summary><p>Teks panjang diringkas AI jadi scene terpenting. Kalau AI gagal atau kuotanya habis, aplikasi mencoba lagi beberapa kali, lalu membuat video dari teksmu apa adanya. Kalau suara gagal dibuat, video tetap selesai tanpa suara dan kamu bisa menambahkan suaranya nanti. Hanya masalah key atau kode akses yang menghentikan proses, dan itu dijelaskan jelas di layar.</p></details>
+<details><summary>Apa arti persen progres, dan kalau gagal bagaimana?</summary><p>Tahap suara dan render dihitung pasti. Tahap AI (menulis scene, menonton video) berupa perkiraan karena lamanya tergantung Google. Kalau ada tahap gagal, kamu melihat penyebab dan saran perbaikannya, dan tombol Coba lagi melanjutkan dari bagian yang belum selesai.</p></details>
+<details><summary>Apa yang terjadi kalau aku tempel link YouTube?</summary><p>Gemini menonton videonya dari link, menulis transkrip, dan memilih momen terbaik lengkap dengan skor viral. Browser tidak bisa mengunduh video YouTube, jadi untuk memotong dan mengekspor klip kamu perlu mengunggah file video yang sama, yang kamu miliki atau yang kamu punya izinnya.</p></details>
+<details><summary>Bagaimana skor viral dan auto edit dibuat?</summary><p>Gemini membaca transkrip dan menilai hook, emosi, kejutan, nilai informasi, dan kelengkapan cerita. Skornya perkiraan, bukan jaminan viral. Auto edit lalu memasang kartu, scene layar penuh, zoom, snap zoom, glow, ikon mengorbit, pop-up chat, dan sound effect.</p></details>
+<details><summary>Apakah ada musik latar?</summary><p>Belum. Sound effect (pop, whoosh, ding) ikut terekam, tapi musik latar tidak dibuat otomatis karena butuh lisensi.</p></details>
+<details><summary>Kenapa ekspor berjalan real-time dan tab harus terbuka?</summary><p>Video direkam langsung dari kanvas, jadi 30 detik butuh 30 detik. Kalau kamu pindah tab, perekaman otomatis dijeda dan lanjut saat kamu kembali. Layar HP dijaga tetap menyala selama proses.</p></details>
+<details><summary>Apakah datanya aman?</summary><p>Video diproses di perangkatmu. Yang dikirim ke Google hanya teks, audio, atau link yang kamu minta dianalisis. Paket gratis Gemini bisa dipakai Google untuk meningkatkan produknya, jadi jangan proses materi rahasia. Kalau memakai server bersama, pemilik server juga mengelola key-nya.</p></details>
+</section>
+<footer>Video diproses di perangkatmu. Yang dikirim ke Google hanya teks, audio, atau link yang kamu minta dianalisis. Pastikan kamu punya hak atas video yang kamu proses.</footer>
+</div>
+
+<noscript><p style="padding:20px">MPN.studio butuh JavaScript. Aktifkan JavaScript di browsermu.</p></noscript>
+<div class="toast" id="toast" role="alert" hidden></div>
+<script src="core.js"></script>
+<script src="engine.js"></script>
+<script src="episode.js"></script>
+<script src="prog.js"></script>
+<script src="ai.js"></script>
+<script src="clipper.js"></script>
+<script src="t2v.js"></script>
+<script src="init.js"></script>
+</body>
+</html>

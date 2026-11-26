@@ -1,0 +1,8 @@
+wrangler.jsonc
+.assetsignore
+.nojekyll
+README.md
+server-worker.js
+server-worker.test.mjs
+node_modules
+.git
